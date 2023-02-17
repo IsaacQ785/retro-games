@@ -1,0 +1,208 @@
+{% extends "main/header.html" %} {% block content %}
+<canvas
+  id="myCanvas"
+  height="460px"
+  width="600px"
+  style="border: 1px solid #000"
+>
+  <script>
+    const canvas = document.getElementById("myCanvas");
+    const context = canvas.getContext("2d");
+    const clear = clearInterval();
+    context.fillStyle = "grey";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    const blockSize = 20;
+    const directions = ["left", "right", "up", "down"];
+    const j = 0;
+    const colour = ["blue", "red", "green", "black", "pink"];
+    const speedlevels = [3, 6, 9, 12, 15];
+    let moveMade = false;
+
+    var startspeed = prompt("Please enter initial speed in blocks per second"); // Refresh rate in ms
+    while (startspeed != Number(startspeed)) {
+      startspeed = prompt("try again");
+    }
+		var blockpersec = 1000/startspeed;
+    var speedlevel = prompt("Now enter a game level (1,2,3,4,5)"); // % decrease in time between frames
+    while (
+      speedlevel != Number(speedlevel) ||
+      Number(speedlevel) > 5 ||
+      Number(speedlevel) < 0
+    ) {
+      speedlevel = prompt("Invalid input, try another level!");
+    }
+    speedIncrease = speedlevels[speedlevel - 1];
+
+    function initialise(start = false) {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "grey";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      alert("Ready to play?");
+      x = [
+        Math.floor(
+          (canvas.width / 4 + (Math.random() * canvas.width) / 2) / blockSize
+        ) * blockSize,
+      ];
+      y = [
+        Math.floor(
+          (canvas.height / 4 + (Math.random() * canvas.height) / 2) / blockSize
+        ) * blockSize,
+      ];
+      snakeSpeed = blockpersec;
+      snakeDir = directions[Math.floor(Math.random() * 4)];
+      eating = false;
+      xtemp = x[0];
+      ytemp = y[0];
+      foodx =
+        Math.floor((Math.random() * canvas.width) / blockSize) * blockSize;
+      foody =
+        Math.floor((Math.random() * canvas.height) / blockSize) * blockSize;
+      while (foodx == xtemp && foody == ytemp) {
+        foodx =
+          Math.floor((Math.random() * canvas.width) / blockSize) * blockSize;
+        foody =
+          Math.floor((Math.random() * canvas.height) / blockSize) * blockSize;
+      }
+    }
+
+    initialise(true);
+
+    function draw() {
+      moveHead();
+      death();
+      foodEat();
+      moveTail();
+      context.beginPath();
+      context.moveTo(foodx, foody);
+      context.lineTo(foodx + blockSize, foody);
+      context.lineTo(foodx + blockSize, foody + blockSize);
+      context.lineTo(foodx, foody + blockSize);
+      context.lineTo(foodx, foody);
+      context.fillStyle = colour[j + 1];
+      context.fill();
+      context.stroke();
+
+      moveMade = false;
+
+      for (let i = 0; i < x.length; i++) {
+        //Snake
+        context.beginPath();
+        context.moveTo(x[i], y[i]);
+        context.lineTo(x[i] + blockSize, y[i]);
+        context.lineTo(x[i] + blockSize, y[i] + blockSize);
+        context.lineTo(x[i], y[i] + blockSize);
+        context.lineTo(x[i], y[i]);
+        context.fillStyle = colour[j];
+        context.fill();
+        context.stroke();
+      }
+
+      setTimeout(function () {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "grey";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        draw();
+      }, snakeSpeed);
+    }
+
+    function moveHead() {
+      if (snakeDir == "left") {
+        xtemp = x[0] - blockSize;
+        ytemp = y[0];
+      }
+      if (snakeDir == "right") {
+        xtemp = x[0] + blockSize;
+        ytemp = y[0];
+      }
+      if (snakeDir == "down") {
+        ytemp = y[0] + blockSize;
+        xtemp = x[0];
+      }
+      if (snakeDir == "up") {
+        ytemp = y[0] - blockSize;
+        xtemp = x[0];
+      }
+    }
+
+    function moveTail() {
+      if (eating == true) {
+        xlen = x.length - 1;
+      } else {
+        xlen = x.length;
+      }
+      for (let i = 0; i < xlen; i++) {
+        if (i != 0) {
+          x[xlen - i] = x[xlen - i - 1];
+          y[xlen - i] = y[xlen - i - 1];
+        }
+      }
+      eating = false;
+      x[0] = xtemp;
+      y[0] = ytemp;
+    }
+
+    function foodEat() {
+      if (xtemp == foodx && ytemp == foody) {
+        x[x.length] = x[x.length - 1];
+        y[y.length] = y[y.length - 1];
+        snakeSpeed *= 1 - speedIncrease / 100;
+        eating = true;
+      }
+      for (let i = 0; i < x.length; i++) {
+        if (foodx == x[i] && foody == y[i]) {
+          foodx =
+            Math.floor((Math.random() * canvas.width) / blockSize) * blockSize;
+          foody =
+            Math.floor((Math.random() * canvas.height) / blockSize) * blockSize;
+          i = 0;
+        }
+        if (foodx == xtemp && foody == ytemp) {
+          foodx =
+            Math.floor((Math.random() * canvas.width) / blockSize) * blockSize;
+          foody =
+            Math.floor((Math.random() * canvas.height) / blockSize) * blockSize;
+          i = 0;
+        }
+      }
+    }
+
+    function death() {
+      if (
+        xtemp < 0 ||
+        ytemp < 0 ||
+        xtemp >= canvas.width ||
+        ytemp >= canvas.height
+      ) {
+        initialise();
+      }
+      if (x.length > 1) {
+        for (let i = 1; i <= x.length; i++) {
+          if (x[0] == x[i + 1] && y[0] == y[i + 1]) {
+            initialise();
+          }
+        }
+      }
+    }
+
+    document.addEventListener("keydown", function (event) {
+      if (moveMade == false) {
+        if (event.keyCode == 37 && snakeDir != "right") {
+          snakeDir = "left";
+          moveMade = true;
+        } else if (event.keyCode == 39 && snakeDir != "left") {
+          snakeDir = "right";
+          moveMade = true;
+        } else if (event.keyCode == 40 && snakeDir != "up") {
+          snakeDir = "down";
+          moveMade = true;
+        } else if (event.keyCode == 38 && snakeDir != "down") {
+          snakeDir = "up";
+          moveMade = true;
+        }
+      }
+    });
+
+    draw();
+  </script>
+  {% endblock %}</canvas
+>

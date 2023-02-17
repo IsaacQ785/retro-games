@@ -1,0 +1,265 @@
+{% extends "main/header.html" %} {% block content %}
+<style>
+  #myCanvas {
+    background-color: rgba(255, 0, 0, 0.5);
+  }
+</style>
+<div style="position: relative">
+  <br />
+  <canvas
+    id="myCanvas"
+    height="360px"
+    width="480px"
+    style="position: absolute; border: 3px solid #000; z-index: 0"
+  >
+    <script>
+      const canvas = document.getElementById("myCanvas");
+      const context = canvas.getContext("2d");
+      const pixelSize = 40;
+      var deathCount = 0;
+      var intTime = 50;
+      var levelUP = 20;
+      var gunx = 0;
+      var rocket = 0;
+      const uPDown = [-1, 0];
+      var guny = canvas.height - pixelSize / 20;
+      diffLevels = [1, 2, 3, 4, 5];
+      difficulty = diffLevels[0];
+      const bulletColour = "black";
+      let fireRocket = false;
+      function drawGun() {
+        context.beginPath();
+        context.moveTo(gunx, guny);
+        context.lineTo(gunx + pixelSize, guny);
+        context.lineTo(gunx + pixelSize / 2, guny - pixelSize / 2);
+        context.fillStyle = "grey";
+        context.fill();
+      }
+
+      document.addEventListener("keydown", function (event) {
+        if (event.keyCode == 37) {
+          moveGun("left");
+        } else if (event.keyCode == 39) {
+          moveGun("right");
+        } else if (event.keyCode == 32) {
+          if (rocket >= 1000) {
+            bullets.push(new Bullet(true));
+            rocket -= 1000;
+          }
+        } else if (event.keyCode == 88) {
+          bullets.push(new Bullet());
+        }
+      });
+
+      function moveGun(dir) {
+        if (dir == "left" && gunx != 0) {
+          gunx -= pixelSize;
+        } else if (dir === "right" && gunx != canvas.width - pixelSize) {
+          gunx += pixelSize;
+        }
+      }
+
+      class Invader {
+        constructor(colour) {
+          this.colour = colour;
+          this.shape = "blob";
+          this.x =
+            Math.floor((Math.random() * canvas.width) / pixelSize) * pixelSize +
+            pixelSize / 2;
+          this.y = pixelSize / 2;
+          this.nextMove = 1;
+        }
+
+        draw() {
+          context.beginPath();
+          context.arc(this.x, this.y, pixelSize / 3, 0, Math.PI * 2);
+          context.moveTo(this.x - pixelSize / 10, this.y - pixelSize / 10);
+          context.lineTo(this.x - pixelSize / 5, this.y - pixelSize / 5);
+          context.moveTo(this.x + pixelSize / 10, this.y - pixelSize / 10);
+          context.lineTo(this.x + pixelSize / 5, this.y - pixelSize / 5);
+          context.moveTo(this.x - pixelSize / 6, this.y + pixelSize / 6);
+          for (let i = 0; i < 4; i++) {
+            context.lineTo(
+              this.x - pixelSize / 6 + ((i + 1) * pixelSize) / 12,
+              this.y + pixelSize / 6 + (uPDown[i % 2] * pixelSize) / 12
+            );
+          }
+          context.fillStyle = this.colour;
+          context.fill();
+          context.stroke();
+        }
+        move() {
+          this.y += pixelSize;
+        }
+        victor() {
+          if (this.y > canvas.height - pixelSize) {
+            gameEnd();
+          }
+        }
+      }
+
+      class Bullet {
+        constructor(fireRocket = false) {
+          this.rocket = fireRocket;
+          this.rocketType = false;
+          this.x = gunx + pixelSize / 2;
+          this.y = canvas.height - pixelSize / 2;
+          this.colour = bulletColour;
+          this.rectCoords = [this.x, this.y, 0, -pixelSize / 4];
+          this.idx = bullets.length;
+          fireRocket = false;
+        }
+        moveDrawBullet() {
+          context.clearRect(
+            this.rectCoords[0] - 1,
+            this.rectCoords[1],
+            0,
+            this.rectCoords[1] - pixelSize / 4
+          );
+          if (this.rocket) {
+            this.rocketType = true;
+            this.rectCoords[0] -= 5;
+            this.rectCoords[2] += 5;
+            this.colour = "red";
+            this.rocket = false;
+          }
+          if (this.rocketType) {
+            context.fillRect(
+              this.rectCoords[0],
+              this.rectCoords[1],
+              this.rectCoords[2],
+              this.rectCoords[3]
+            );
+          } else {
+            context.strokeRect(
+              this.rectCoords[0],
+              this.rectCoords[1],
+              this.rectCoords[2],
+              this.rectCoords[3]
+            );
+          }
+          this.y -= 1;
+          this.rectCoords[1] -= 1;
+        }
+      }
+
+      const colours = ["blue", "red", "green", "pink"];
+      var enemies = new Array();
+      for (var i = 0; i < colours.length; i++) {
+        enemies.push(new Invader(colours[i]));
+      }
+
+      var bullets = new Array();
+      bullets.push(new Bullet("A"));
+      var newB = 0;
+      var newE = 0;
+
+      function drawGame() {
+        if (newE == 0) {
+          for (let i = 0; i < difficulty; i++) {
+            enemies.push(new Invader(colours[Math.floor(Math.random() * 4)]));
+          }
+        }
+        newE += 1;
+        newE = newE % (10 / difficulty);
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        enemies.forEach(function (obj) {
+          if (obj.nextMove == 0) {
+            obj.move();
+          }
+          obj.nextMove += 1;
+          obj.nextMove = obj.nextMove % (2 * (levelUP - difficulty));
+          obj.draw();
+          obj.victor();
+        });
+        drawGun();
+      }
+      function drawBullets() {
+        rocket += 1;
+        bullets.forEach(function (obj) {
+          obj.moveDrawBullet();
+          if (obj.y < 0) {
+            bullets.splice(0, 1);
+            bullets.forEach(function (obj) {
+              obj.idx -= 1;
+            });
+          }
+          for (let i = 0; i < enemies.length; i++) {
+            if (
+              Math.abs(obj.y - enemies[i].y) <= pixelSize / 2 &&
+              Math.abs(obj.x - enemies[i].x) <= pixelSize / 2
+            ) {
+              enemies.splice(i, 1);
+              deathCount += 1;
+              if (obj.rocketType) {
+                for (let i = 0; i < enemies.length; i++) {
+                  if (
+                    Math.abs(obj.y - enemies[i].y) <= 2.5 * pixelSize &&
+                    Math.abs(obj.x - enemies[i].x) <= 2 * pixelSize
+                  ) {
+                    deathCount += 1;
+                    enemies.splice(i, 1);
+                  }
+                }
+              }
+              bullets.splice(obj.idx, 1);
+              deathCount = deathCount % 10;
+              if (deathCount == 0) {
+                levelUP -= 1;
+              }
+              bullets.forEach(function (obj) {
+                obj.idx -= 1;
+              });
+            }
+          }
+        });
+      }
+
+      function gameEnd() {
+        alert("You have lost the game");
+        enemies = new Array();
+        bullets = new Array();
+        levelUP = 20;
+        deathCount = 0;
+        newB = 0;
+        newE = 0;
+        rocket = 0;
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        alert("Ready to begin");
+      }
+
+      setInterval(drawGame, intTime);
+      setInterval(drawBullets, intTime / 10);
+    </script>
+  </canvas>
+  <canvas
+    id="rocketCanvas"
+    height="400px"
+    width="485px"
+    style="position: absolute; border: 0px solid #000; z-index: -1"
+  >
+    <script type="text/javascript">
+      const rocketCanvas = document.getElementById("rocketCanvas");
+      const rContext = rocketCanvas.getContext("2d");
+      function rocketDisplay() {
+        let num = Math.floor(rocket / 1000);
+        let x = 0;
+        let y = rocketCanvas.height;
+        rContext.clearRect(0, 0, rocketCanvas.width, rocketCanvas.height);
+        while (num > 0) {
+          rContext.beginPath();
+          rContext.moveTo(x, y);
+          rContext.fillRect(x, y, pixelSize, 5 - pixelSize);
+          rContext.fillStyle = "red";
+          rContext.fill();
+          rContext.stroke();
+          x += pixelSize;
+          num -= 1;
+        }
+      }
+      setInterval(rocketDisplay, intTime);
+    </script>
+  </canvas>
+</div>
+
+{% endblock %}

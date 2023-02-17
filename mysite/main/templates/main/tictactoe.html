@@ -1,0 +1,188 @@
+{% extends "main/header.html" %} {% block content %}
+<canvas
+  id="myCanvas"
+  height="480px"
+  width="480px"
+  style="border: 1px solid #000"
+>
+  <script>
+    const canvas = document.getElementById("myCanvas");
+    const context = canvas.getContext("2d");
+    context.fillStyle = "white";
+    context.lineWidth = 10;
+    context.strokeRect(0, 0, canvas.width, canvas.height);
+
+    players = ["x", "o"];
+
+    document.addEventListener("click", function (e) {
+      getPositions(canvas, e);
+    });
+    gb = [
+      [0, 0, 0],
+      [0, 0, 0],
+      [0, 0, 0],
+    ];
+    px = [0, 0];
+    py = [0, 0];
+    p1size = 0.5;
+    p2size = 0.5;
+    linexStart = [0, 0, canvas.width / 3, (canvas.width * 2) / 3];
+    lineyStart = [canvas.height / 3, (canvas.height * 2) / 3, 0, 0];
+    linexEnd = [
+      canvas.width,
+      canvas.width,
+      canvas.width / 3,
+      (canvas.width * 2) / 3,
+    ];
+    lineyEnd = [
+      canvas.height / 3,
+      (canvas.height * 2) / 3,
+      canvas.height,
+      canvas.height,
+    ];
+    gameWon = false;
+    tmp = false;
+
+    function gameboard() {
+      for (let i = 0; i < linexStart.length; i++) {
+        context.beginPath();
+        context.moveTo(linexStart[i], lineyStart[i]);
+        context.lineTo(linexEnd[i], lineyEnd[i]);
+        context.lineWidth = 10;
+        context.stroke();
+      }
+    }
+
+    gameboard();
+
+    function draw(player) {
+      if (player == "x") {
+        context.beginPath();
+        context.moveTo(
+          ((1 + 2 * px[0]) * canvas.width) / 6,
+          ((1 + 2 * py[0]) * canvas.height) / 6
+        );
+        context.lineTo(
+          ((1 + 2 * px[0] + p1size) * canvas.width) / 6,
+          ((1 + 2 * py[0] + p1size) * canvas.height) / 6
+        );
+        context.lineTo(
+          ((1 + 2 * px[0] - p1size) * canvas.width) / 6,
+          ((1 + 2 * py[0] - p1size) * canvas.height) / 6
+        );
+        context.lineTo(
+          ((1 + 2 * px[0]) * canvas.width) / 6,
+          ((1 + 2 * py[0]) * canvas.height) / 6
+        );
+        context.lineTo(
+          ((1 + 2 * px[0] - p1size) * canvas.width) / 6,
+          ((1 + 2 * py[0] + p1size) * canvas.height) / 6
+        );
+        context.lineTo(
+          ((1 + 2 * px[0] + p1size) * canvas.width) / 6,
+          ((1 + 2 * py[0] - p1size) * canvas.height) / 6
+        );
+        context.stroke();
+      } else if (player == "o") {
+        context.beginPath();
+        context.arc(
+          ((1 + 2 * px[1]) * canvas.width) / 6,
+          ((1 + 2 * py[1]) * canvas.height) / 6,
+          canvas.width / 12,
+          0,
+          2 * Math.PI
+        );
+        context.stroke();
+      }
+    }
+
+    playing = true;
+    idx = Math.floor(Math.random() * 2);
+    currentplayer = players[idx];
+
+    function play(x, y, reset = false) {
+      gameboard();
+      if (reset == true) {
+        return;
+      }
+      px[idx] = x;
+      py[idx] = y;
+      if (gb[y][x] != 0 && gameWon == false) {
+        alert("Bad move, miss a go");
+      } else {
+        draw(currentplayer);
+        gb[y][x] = players[idx];
+      }
+      idx += 1;
+      idx = idx % 2;
+      currentplayer = players[idx];
+      gameboard();
+    }
+
+    function gameReset() {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "white";
+      context.lineWidth = 10;
+      context.strokeRect(0, 0, canvas.width, canvas.height);
+      gb = [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ];
+    }
+
+    function getPositions(canvasEl, ev) {
+      tmp = false;
+      let rect = canvasEl.getBoundingClientRect();
+      mouseX = ev.clientX - rect.left;
+      _mouseX = (3 * Number(mouseX)) / canvas.width;
+      Xclick = Math.floor(_mouseX);
+      mouseY = ev.clientY - rect.top;
+      _mouseY = (3 * Number(mouseY)) / canvas.height;
+      Yclick = Math.floor(_mouseY);
+      play(Xclick, Yclick, tmp);
+    }
+
+    function wingame() {
+      for (let i = 0; i <= 2; i++) {
+        if (gb[0][i] == gb[1][i] && gb[0][i] == gb[2][i] && gb[0][i] != "0") {
+          gameWon = true;
+        }
+        if (gb[i][0] == gb[i][1] && gb[i][0] == gb[i][2] && gb[i][0] != "0") {
+          gameWon = true;
+        }
+      }
+      if (gb[0][0] == gb[1][1] && gb[0][0] == gb[2][2] && gb[0][0] != "0") {
+        gameWon = true;
+      }
+      if (gb[2][0] == gb[1][1] && gb[2][0] == gb[0][2] && gb[2][0] != "0") {
+        gameWon = true;
+      }
+      if (gameWon == true) {
+        gameReset();
+        tmp = true;
+        gameWon = false;
+        gameboard();
+        alert("Won");
+      }
+      let count = 0;
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          if (gb[i][j] == 0) {
+            count += 1;
+          }
+        }
+      }
+      if (count == 0) {
+        gameReset();
+        tmp = true;
+        gameWon = false;
+        gameboard();
+        alert("It's a tie");
+      }
+      count = 0;
+    }
+    setInterval(wingame, 100);
+  </script>
+  {% endblock %}</canvas
+>
